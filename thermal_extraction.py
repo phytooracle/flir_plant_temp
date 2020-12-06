@@ -31,7 +31,7 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('dir',
-                        nargs='+',
+                        #nargs='+',
                         metavar='dir',
                         help='Directory containing geoTIFFs')
 
@@ -48,6 +48,13 @@ def get_args():
                         metavar='outdir',
                         type=str,
                         default='individual_thermal_out')
+
+    parser.add_argument('-c',
+                        '--cpu',
+                        help='Number of CPUs for multiprocessing',
+                        metavar='cpu',
+                        type=int,
+                        required=True)
 
     parser.add_argument('-of',
                         '--outfile',
@@ -156,17 +163,25 @@ def process_image(img):
 
 # --------------------------------------------------
 def main():
-    """Make a jazz noise here"""
+    """Detect plants and collect temperatures here"""
 
     args = get_args()
-
     major_df = pd.DataFrame()
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
-        df = p.map(process_image, args.dir)
+
+    mod_path = args.dir + '/'
+    img_list = glob.glob(f'{mod_path}*/*.tif')
+
+    if not img_list:
+        img_list = [args.dir]
+
+    with multiprocessing.Pool(args.cpu) as p:
+        df = p.map(process_image, img_list)
         major_df = major_df.append(df)
 
-    out_path = os.path.join(args.outdir, f'{args.outfile}.csv')
-    major_df.to_csv(out_path)
+    if not os.path.isdir(args.outdir):
+        os.makedirs(args.outdir)
+
+    major_df.to_csv(os.path.join(args.outdir, f'{args.outfile}.csv'))
 
     print(f'Done, see outputs in ./{args.outdir}.')
 

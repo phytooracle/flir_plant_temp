@@ -15,7 +15,8 @@ RUN apt-get install -y wget \
                        apt-utils \
                        ffmpeg \
                        libsm6 \
-                       libxext6
+                       libxext6 \
+                       libffi-dev
 
 RUN wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
 RUN tar -xzf Python-3.8.5.tgz

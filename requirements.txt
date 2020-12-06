@@ -10,3 +10,4 @@ imagecodecs==2020.2.18
 pandas==1.0.3
 seaborn==0.10.1
 scipy==1.4.1
+seaborn==0.10.1

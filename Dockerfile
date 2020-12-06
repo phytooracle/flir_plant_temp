@@ -18,7 +18,8 @@ RUN apt-get install -y wget \
                        libxext6
 
 RUN wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
-RUN tar -xvf Python-3.8.5.tgz && cd Python-3.8.5/ && ./configure && make && make install
+RUN tar -xzf Python-3.8.5.tgz
+RUN cd Python-3.8.5/ && ./configure && make && make install
 RUN apt-get install -y python3-pip
 
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable

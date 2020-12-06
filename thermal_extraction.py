@@ -31,7 +31,7 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('dir',
-                        #nargs='+',
+                        nargs='+',
                         metavar='dir',
                         help='Directory containing geoTIFFs')
 
@@ -168,14 +168,14 @@ def main():
     args = get_args()
     major_df = pd.DataFrame()
 
-    mod_path = args.dir + '/'
-    img_list = glob.glob(f'{mod_path}*/*.tif')
+    # mod_path = args.dir + '/'
+    # img_list = glob.glob(f'{mod_path}*/*.tif')
 
-    if not img_list:
-        img_list = [args.dir]
+    # if not img_list:
+    #     img_list = [args.dir]
 
     with multiprocessing.Pool(args.cpu) as p:
-        df = p.map(process_image, img_list)
+        df = p.map(process_image, args.dir)
         major_df = major_df.append(df)
 
     if not os.path.isdir(args.outdir):

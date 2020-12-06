@@ -6,9 +6,7 @@ COPY . /opt
 USER root
 
 RUN apt-get update
-RUN apt-get install -y python3.6-dev \
-                       python3-pip \
-                       wget \
+RUN apt-get install -y wget \
                        gdal-bin \
                        libgdal-dev \
                        libspatialindex-dev \
@@ -18,6 +16,10 @@ RUN apt-get install -y python3.6-dev \
                        ffmpeg \
                        libsm6 \
                        libxext6
+
+RUN wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
+RUN tar -xvf Python-3.8.5.tgz && cd Python-3.8.5/ && ./configure && make && make install
+RUN apt-get install -y python3-pip
 
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update

@@ -8,7 +8,7 @@
 
 ## Outputs
 
-One or more meshes.
+
 
 ## Arguments and Flags
 * **Positional Arguments:**

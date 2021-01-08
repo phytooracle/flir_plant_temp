@@ -14,6 +14,7 @@ import glob
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+from osgeo import gdal
 import tifffile as tifi
 import pandas as pd
 import copy
@@ -24,6 +25,11 @@ from skimage.filters import threshold_minimum, threshold_triangle, threshold_yen
 from skimage import data, exposure, img_as_float
 import multiprocessing
 import seaborn as sns
+import utm
+import json
+
+import warnings
+warnings.filterwarnings("ignore")
 
 # --------------------------------------------------
 def get_args():
@@ -34,7 +40,6 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('dir',
-                        nargs='+',
                         metavar='dir',
                         help='Directory containing geoTIFFs')
 
@@ -43,6 +48,22 @@ def get_args():
                         help='Trained model (.pth)',
                         metavar='model',
                         type=str,
+                        required=True)
+
+    parser.add_argument('-g',
+                        '--geojson',
+                        help='GeoJSON containing plot boundaries',
+                        metavar='str',
+                        type=str,
+                        default=None,
+                        required=True)
+
+    parser.add_argument('-d',
+                        '--date',
+                        help='Scan date',
+                        metavar='date',
+                        type=str,
+                        default=None,
                         required=True)
 
     parser.add_argument('-od',
@@ -69,6 +90,22 @@ def get_args():
 
 
 # --------------------------------------------------
+def get_paths(directory):
+    ortho_list = []
+
+    for root, dirs, files in os.walk(directory):
+        for name in files:
+            if '_ortho.tif' in name:
+                ortho_list.append(os.path.join(root, name))
+
+    if not ortho_list:
+
+        raise Exception(f'ERROR: No compatible images found in {directory}.')
+
+    return ortho_list
+
+
+# --------------------------------------------------
 def open_image(img_path):
 
     tif_img = tifi.imread(img_path)
@@ -77,6 +114,78 @@ def open_image(img_path):
 
     return a_img, tif_img
 
+
+# --------------------------------------------------
+def get_min_max(box):
+    min_x, min_y, max_x, max_y = int(box[0]), int(box[1]), int(box[2]), int(box[3])
+
+    return min_x, min_y, max_x, max_y
+
+
+# --------------------------------------------------
+def get_trt_zones():
+    trt_zone_1 = []
+    trt_zone_2 = []
+    trt_zone_3 = []
+
+    for i in range(3, 19):
+        for i2 in range(2, 48):
+            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+            trt_zone_1.append(str(plot))
+
+    for i in range(20, 36):
+        for i2 in range(2, 48):
+            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+            trt_zone_2.append(str(plot))
+
+    for i in range(37, 53):
+        for i2 in range(2, 48):
+            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+            trt_zone_3.append(str(plot))
+
+    return trt_zone_1, trt_zone_2, trt_zone_3
+
+
+# --------------------------------------------------
+def find_trt_zone(plot_name):
+    trt_zone_1, trt_zone_2, trt_zone_3 = get_trt_zones()
+
+    if plot_name in trt_zone_1:
+        trt = 'treatment 1'
+
+    elif plot_name in trt_zone_2:
+        trt = 'treatment 2'
+
+    elif plot_name in trt_zone_3:
+        trt = 'treatment 3'
+
+    else:
+        trt = 'border'
+
+    return trt
+
+
+# --------------------------------------------------
+def get_genotype(plot, geojson):
+
+    with open(geojson) as f:
+        data = json.load(f)
+
+    for feat in data['features']:
+        if feat.get('properties')['ID']==plot:
+            genotype = feat.get('properties').get('genotype')
+
+    return genotype
+
+
+# --------------------------------------------------
+def pixel2geocoord(one_img, x_pix, y_pix):
+    ds = gdal.Open(one_img)
+    c, a, b, f, d, e = ds.GetGeoTransform()
+    lon = a * int(x_pix) + b * int(y_pix) + a * 0.5 + b * 0.5 + c
+    lat = d * int(x_pix) + e * int(y_pix) + d * 0.5 + e * 0.5 + f
+
+    return (lat, lon)
 
 # --------------------------------------------------
 def peak_temp(clipped_img):
@@ -90,6 +199,7 @@ def peak_temp(clipped_img):
 
     if len(minima_array) > 1:
         minima_val = float(minima_array[1])
+
     cut_off = float(minima_val)
     # print(f'Original cut off: {cut_off}')
 
@@ -142,6 +252,12 @@ def process_image(img):
         args = get_args()
 
         model = core.Model.load(args.model, ['lettuce'])
+        plot = img.split('/')[-1].replace('_ortho.tif', '')
+        trt_zone = find_trt_zone(plot)
+        plot_name = plot.replace('_', ' ')
+        print(f'Image: {plot_name}')
+        genotype = get_genotype(plot_name, args.geojson)
+
         a_img, tif_img = open_image(img)
         predictions = model.predict(a_img)
         labels, boxes, scores = predictions
@@ -150,21 +266,20 @@ def process_image(img):
         for i, box in enumerate(boxes):
             if scores[i] >= 0.2:
                 cnt += 1
-                min_x, min_y, max_x, max_y = int(box[0]), int(box[1]), int(box[2]), int(box[3])
-                area = (max_x - min_x) * (max_y - min_y)
+                min_x, min_y, max_x, max_y = get_min_max(box)
+                center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
+                nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
+                se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
 
-                start_point = (min_x, max_y)
-                end_point = (max_x, min_y)
+                nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
+                se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
 
-                center_x = abs(min_x - max_x)//2
-                center_y = abs(min_y - max_y)//2
+                area_sq = (se_e - nw_e) * (se_n - nw_n)
+                lat, lon = pixel2geocoord(img, center_x, center_y)
 
                 new_img = tif_img[min_y:max_y, min_x:max_x]
                 new_img = np.array(new_img)
                 copy = new_img.copy()
-
-                e_p = (int(center_x-10), int(center_y+10))
-                s_p = (int(center_x+10), int(center_y-10))
 
                 roi = copy[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
 
@@ -174,17 +289,33 @@ def process_image(img):
                 min_thresh = min_threshold(new_img)
 
                 f_name = img.split('/')[-1]
-                temp_dict[cnt] = {'image': f_name,
-                                 'roi_temp': temp_roi,
-                                 'image_temp': img_temp,
-                                 'peaks_temp': peak,
-                                 'min_thresh_temp': min_thresh}
+                temp_dict[cnt] = {'date': args.date,
+                                  'treatment': trt_zone,
+                                  'plot': plot,
+                                  'genotype': genotype,
+                                  'lon': lon,
+                                  'lat': lat,
+                                  'min_x': min_x,
+                                  'max_x': max_x,
+                                  'min_y': min_y,
+                                  'max_y': max_y,
+                                  'nw_lat': nw_lat,
+                                  'nw_lon': nw_lon,
+                                  'se_lat': se_lat,
+                                  'se_lon': se_lon,
+                                  'bounding_area_m2': area_sq,
+                                  'roi_temp': temp_roi,
+                                  'image_temp': img_temp,
+                                  'peaks_temp': peak,
+                                  'min_thresh_temp': min_thresh}
 
-        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['image',
-                                                                        'roi_temp',
-                                                                        'image_temp',
-                                                                        'peaks_temp',
-                                                                        'min_thresh_temp']).set_index('image')
+        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
+                                                                        'lon', 'lat', 'min_x', 'max_x', 'min_y',
+                                                                        'max_y', 'nw_lat', 'nw_lon', 'se_lat',
+                                                                        'se_lon', 'bounding_area_m2', 'roi_temp',
+                                                                        'image_temp', 'peaks_temp',
+                                                                        'min_thresh_temp']).set_index('date')
+
     except:
         df = pd.DataFrame()
 
@@ -198,8 +329,10 @@ def main():
     args = get_args()
     major_df = pd.DataFrame()
 
+    img_list = get_paths(args.dir)
+
     with multiprocessing.Pool(args.cpu) as p:
-        df = p.map(process_image, args.dir)
+        df = p.map(process_image, img_list)
         major_df = major_df.append(df)
 
     if not os.path.isdir(args.outdir):

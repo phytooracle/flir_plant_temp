@@ -242,6 +242,16 @@ def min_threshold(image, sigma = float(1)):
     return plant_temp
 
 
+def roi_temp(img, max_x, min_x, max_y, min_y):
+
+    center_x = abs(min_x - max_x)//2
+    center_y = abs(min_y - max_y)//2
+    roi = img[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
+
+    temp_roi = np.nanmean(roi)
+
+    return temp_roi
+
 # --------------------------------------------------
 def process_image(img):
 
@@ -268,6 +278,7 @@ def process_image(img):
                 cnt += 1
                 min_x, min_y, max_x, max_y = get_min_max(box)
                 center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
+
                 nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
                 se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
 
@@ -279,14 +290,13 @@ def process_image(img):
 
                 new_img = tif_img[min_y:max_y, min_x:max_x]
                 new_img = np.array(new_img)
-                copy = new_img.copy()
+                #copy = new_img.copy()
 
-                roi = copy[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
-
-                temp_roi = np.nanmean(roi)
+                temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
                 img_temp = np.nanmean(new_img)
                 peak = peak_temp(new_img)
                 min_thresh = min_threshold(new_img)
+                print(temp_roi)
 
                 f_name = img.split('/')[-1]
                 temp_dict[cnt] = {'date': args.date,
@@ -304,10 +314,10 @@ def process_image(img):
                                   'se_lat': se_lat,
                                   'se_lon': se_lon,
                                   'bounding_area_m2': area_sq,
-                                  'roi_temp': temp_roi,
-                                  'image_temp': img_temp,
-                                  'peaks_temp': peak,
-                                  'min_thresh_temp': min_thresh}
+                                  'roi_temp': temp_roi - 273.15,
+                                  'image_temp': img_temp - 273.15,
+                                  'peaks_temp': peak - 273.15,
+                                  'min_thresh_temp': min_thresh - 273.15}
 
         df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
                                                                         'lon', 'lat', 'min_x', 'max_x', 'min_y',

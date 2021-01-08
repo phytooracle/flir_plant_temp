@@ -19,6 +19,9 @@ import pandas as pd
 import copy
 from scipy import stats
 from scipy.signal import argrelextrema
+import skimage.color
+from skimage.filters import threshold_minimum, threshold_triangle, threshold_yen, try_all_threshold
+from skimage import data, exposure, img_as_float
 import multiprocessing
 import seaborn as sns
 
@@ -88,20 +91,43 @@ def peak_temp(clipped_img):
     if len(minima_array) > 1:
         minima_val = float(minima_array[1])
     cut_off = float(minima_val)
-    print(f'Original cut off: {cut_off}')
+    # print(f'Original cut off: {cut_off}')
 
     if cut_off < 300:
         try:
             minima_val = float(minima_array[2])
             cut_off = float(minima_val)
-            print(cut_off)
+            # print(cut_off)
         except:
             cut_off = cut_off
-            print(f'New cut off: {cut_off}')
+            # print(f'New cut off: {cut_off}')
 
     a_img_copy[a_img_copy > cut_off] = np.nan
 
     plant_temp = np.nanmean(a_img_copy)
+
+    return plant_temp
+
+
+def min_threshold(image, sigma = float(0.5)):
+
+    blur = skimage.color.rgb2gray(image)
+    blur = skimage.filters.gaussian(image, sigma=sigma)
+    t = skimage.filters.threshold_minimum(blur)
+
+    mask = blur < t
+    sel = np.zeros_like(image)
+    sel[mask] = image[mask]
+    sel[sel == 0] = np.nan
+
+    mask2 = blur > t
+    sel2 = np.zeros_like(image)
+    sel2[mask2] = image[mask2]
+    sel2[sel2 == 0] = np.nan
+
+    soil_temp = np.nanmean(sel2)
+    plant_temp = np.nanmean(sel)
+    img_temp = np.nanmean(image)
 
     return plant_temp
 
@@ -142,23 +168,28 @@ def process_image(img):
 
                 roi = copy[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
                 temp_roi = np.nanmean(roi)
-                print(temp_roi)
+                img_temp = np.nanmean(new_img)
+                peak = peak_temp(new_img)
+                min_thresh = min_threshold(new_img)
 
                 f_name = img.split('/')[-1]
                 temp_dict[cnt] = {
                                 'image': f_name,
-                                'label': 'plant',
-                                'temp_roi': temp_roi
+                                'roi_temp': temp_roi,
+                                'image_temp': img_temp,
+                                'peaks_temp': peak,
+                                'min_thresh_temp': min_thresh
                                 }
 
         df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['image',
-                                                                        'label',
-                                                                        'temp_roi']).set_index('image')
+                                                                        'roi_temp',
+                                                                        'image_temp',
+                                                                        'peaks_temp',
+                                                                        'min_thresh_temp']).set_index('image')
     except:
         df = pd.DataFrame()
 
     return df
-
 
 
 # --------------------------------------------------
@@ -167,12 +198,6 @@ def main():
 
     args = get_args()
     major_df = pd.DataFrame()
-
-    # mod_path = args.dir + '/'
-    # img_list = glob.glob(f'{mod_path}*/*.tif')
-
-    # if not img_list:
-    #     img_list = [args.dir]
 
     with multiprocessing.Pool(args.cpu) as p:
         df = p.map(process_image, args.dir)

@@ -81,7 +81,7 @@ def open_image(img_path):
 # --------------------------------------------------
 def peak_temp(clipped_img):
 
-    sns_distplot = sns.distplot(clipped_img.ravel(), hist=True, kde=True, bins=int(a_img.max()/1), color='darkblue').get_lines()[0].get_data()
+    sns_distplot = sns.distplot(clipped_img.ravel(), hist=True, kde=True, bins=int(clipped_img.max()/1), color='darkblue').get_lines()[0].get_data()
     x_y = (np.stack((sns_distplot[0], sns_distplot[1]), axis=1))
     minima = argrelextrema(sns_distplot[1], np.less_equal)
     a_img_copy = clipped_img.copy()
@@ -109,9 +109,9 @@ def peak_temp(clipped_img):
     return plant_temp
 
 
-def min_threshold(image, sigma = float(0.5)):
+def min_threshold(image, sigma = float(1)):
 
-    blur = skimage.color.rgb2gray(image)
+    #blur = skimage.color.rgb2gray(image)
     blur = skimage.filters.gaussian(image, sigma=sigma)
     t = skimage.filters.threshold_minimum(blur)
 
@@ -136,6 +136,7 @@ def min_threshold(image, sigma = float(0.5)):
 def process_image(img):
 
     try:
+
         temp_dict = {}
         cnt = 0
         args = get_args()
@@ -145,7 +146,6 @@ def process_image(img):
         predictions = model.predict(a_img)
         labels, boxes, scores = predictions
         copy = tif_img.copy()
-
 
         for i, box in enumerate(boxes):
             if scores[i] >= 0.2:
@@ -167,19 +167,18 @@ def process_image(img):
                 s_p = (int(center_x+10), int(center_y-10))
 
                 roi = copy[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
+
                 temp_roi = np.nanmean(roi)
                 img_temp = np.nanmean(new_img)
                 peak = peak_temp(new_img)
                 min_thresh = min_threshold(new_img)
 
                 f_name = img.split('/')[-1]
-                temp_dict[cnt] = {
-                                'image': f_name,
-                                'roi_temp': temp_roi,
-                                'image_temp': img_temp,
-                                'peaks_temp': peak,
-                                'min_thresh_temp': min_thresh
-                                }
+                temp_dict[cnt] = {'image': f_name,
+                                 'roi_temp': temp_roi,
+                                 'image_temp': img_temp,
+                                 'peaks_temp': peak,
+                                 'min_thresh_temp': min_thresh}
 
         df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['image',
                                                                         'roi_temp',

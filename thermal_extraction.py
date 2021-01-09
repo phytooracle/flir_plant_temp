@@ -187,6 +187,7 @@ def pixel2geocoord(one_img, x_pix, y_pix):
 
     return (lat, lon)
 
+
 # --------------------------------------------------
 def peak_temp(clipped_img):
 
@@ -219,6 +220,7 @@ def peak_temp(clipped_img):
     return plant_temp
 
 
+# --------------------------------------------------
 def min_threshold(image, sigma = float(1)):
 
     #blur = skimage.color.rgb2gray(image)
@@ -242,6 +244,7 @@ def min_threshold(image, sigma = float(1)):
     return plant_temp
 
 
+# --------------------------------------------------
 def roi_temp(img, max_x, min_x, max_y, min_y):
 
     center_x = abs(min_x - max_x)//2
@@ -251,6 +254,7 @@ def roi_temp(img, max_x, min_x, max_y, min_y):
     temp_roi = np.nanmean(roi)
 
     return temp_roi
+
 
 # --------------------------------------------------
 def process_image(img):

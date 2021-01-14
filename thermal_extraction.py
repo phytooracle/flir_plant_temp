@@ -73,12 +73,12 @@ def get_args():
                         type=str,
                         default='individual_thermal_out')
 
-    parser.add_argument('-c',
-                        '--cpu',
-                        help='Number of CPUs for multiprocessing',
-                        metavar='cpu',
-                        type=int,
-                        required=True)
+    # parser.add_argument('-c',
+    #                     '--cpu',
+    #                     help='Number of CPUs for multiprocessing',
+    #                     metavar='cpu',
+    #                     type=int,
+    #                     required=True)
 
     parser.add_argument('-of',
                         '--outfile',
@@ -255,6 +255,37 @@ def roi_temp(img, max_x, min_x, max_y, min_y):
 
     return temp_roi
 
+def get_stats(img):
+    img = img[~np.isnan(img)]
+
+    mean = np.mean(img) #- 273.15
+    median = np.percentile(img, 50)
+
+    q1 = np.percentile(img, 25)
+    q3 = np.percentile(img, 75)
+
+    var = np.var(img)
+    sd = np.std(img)
+
+    return mean, median, q1, q3, var, sd
+
+def kmeans_temp(img):
+    pixel_vals = img.reshape((-1,1))
+    pixel_vals = np.float32(pixel_vals)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1.0)
+    k = 3
+    retval, labels, centers = cv2.kmeans(pixel_vals, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    centers = np.uint8(centers)
+    segmented_data = centers[labels.flatten()]
+    segmented_image = segmented_data.reshape((img.shape))
+    low_thresh = np.unique(segmented_image)[:1][0]
+    upp_thresh = np.unique(segmented_image)[1:2][0]
+    img[segmented_image > upp_thresh] = np.nan
+
+    mean, median, q1, q3, var, sd = get_stats(img)
+
+    return mean, median, q1, q3, var, sd
+
 
 # --------------------------------------------------
 def process_image(img):
@@ -297,10 +328,13 @@ def process_image(img):
                 #copy = new_img.copy()
 
                 temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
-                img_temp = np.nanmean(new_img)
-                peak = peak_temp(new_img)
-                min_thresh = min_threshold(new_img)
-                print(temp_roi)
+                mean, median, q1, q3, var, sd = kmeans_temp(new_img)
+                # img_temp = np.nanmean(new_img)
+                # peak = peak_temp(new_img)
+                # min_thresh = min_threshold(new_img)
+                # print(temp_roi)
+
+                #mean, median, q1, q3 = get_stats(copy)
 
                 f_name = img.split('/')[-1]
                 temp_dict[cnt] = {'date': args.date,
@@ -318,17 +352,19 @@ def process_image(img):
                                   'se_lat': se_lat,
                                   'se_lon': se_lon,
                                   'bounding_area_m2': area_sq,
-                                  'roi_temp': temp_roi - 273.15,
-                                  'image_temp': img_temp - 273.15,
-                                  'peaks_temp': peak - 273.15,
-                                  'min_thresh_temp': min_thresh - 273.15}
+                                  'roi_temp': temp_roi,
+                                  'quartile_1': q1,
+                                  'mean': mean,
+                                  'median': median,
+                                  'quartile_3': q3,
+                                  'variance': var,
+                                  'std_dev': sd}
 
         df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
                                                                         'lon', 'lat', 'min_x', 'max_x', 'min_y',
                                                                         'max_y', 'nw_lat', 'nw_lon', 'se_lat',
                                                                         'se_lon', 'bounding_area_m2', 'roi_temp',
-                                                                        'image_temp', 'peaks_temp',
-                                                                        'min_thresh_temp']).set_index('date')
+                                                                        'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
 
     except:
         df = pd.DataFrame()
@@ -345,7 +381,7 @@ def main():
 
     img_list = get_paths(args.dir)
 
-    with multiprocessing.Pool(args.cpu) as p:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
         df = p.map(process_image, img_list)
         major_df = major_df.append(df)
 

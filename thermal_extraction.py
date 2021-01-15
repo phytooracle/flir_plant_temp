@@ -73,12 +73,12 @@ def get_args():
                         type=str,
                         default='individual_thermal_out')
 
-    # parser.add_argument('-c',
-    #                     '--cpu',
-    #                     help='Number of CPUs for multiprocessing',
-    #                     metavar='cpu',
-    #                     type=int,
-    #                     required=True)
+    parser.add_argument('-c',
+                        '--cpu',
+                        help='Number of CPUs for multiprocessing',
+                        metavar='cpu',
+                        type=int,
+                        required=True)
 
     parser.add_argument('-of',
                         '--outfile',
@@ -309,67 +309,72 @@ def process_image(img):
     genotype = get_genotype(plot_name, args.geojson)
 
     a_img, tif_img = open_image(img)
-    predictions = model.predict(a_img)
-    labels, boxes, scores = predictions
-    copy = tif_img.copy()
+    df = pd.DataFrame()
 
-    for i, box in enumerate(boxes):
-        if scores[i] >= 0.2:
-            cnt += 1
-            min_x, min_y, max_x, max_y = get_min_max(box)
-            center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
+    try:
+        predictions = model.predict(a_img)
+        labels, boxes, scores = predictions
 
-            nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
-            se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
+        for i, box in enumerate(boxes):
+            if scores[i] >= 0.2:
+                cnt += 1
+                min_x, min_y, max_x, max_y = get_min_max(box)
+                center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
 
-            nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
-            se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
+                nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
+                se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
 
-            area_sq = (se_e - nw_e) * (se_n - nw_n)
-            lat, lon = pixel2geocoord(img, center_x, center_y)
+                nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
+                se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
 
-            new_img = tif_img[min_y:max_y, min_x:max_x]
-            new_img = np.array(new_img)
-            #copy = new_img.copy()
+                area_sq = (se_e - nw_e) * (se_n - nw_n)
+                lat, lon = pixel2geocoord(img, center_x, center_y)
 
-            temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
-            mean, median, q1, q3, var, sd = kmeans_temp(new_img)
-            # img_temp = np.nanmean(new_img)
-            # peak = peak_temp(new_img)
-            # min_thresh = min_threshold(new_img)
-            # print(temp_roi)
+                new_img = tif_img[min_y:max_y, min_x:max_x]
+                new_img = np.array(new_img)
+                #copy = new_img.copy()
 
-            #mean, median, q1, q3 = get_stats(copy)
+                temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
+                mean, median, q1, q3, var, sd = kmeans_temp(new_img)
+                # img_temp = np.nanmean(new_img)
+                # peak = peak_temp(new_img)
+                # min_thresh = min_threshold(new_img)
+                # print(temp_roi)
 
-            f_name = img.split('/')[-1]
-            temp_dict[cnt] = {'date': args.date,
-                                'treatment': trt_zone,
-                                'plot': plot,
-                                'genotype': genotype,
-                                'lon': lon,
-                                'lat': lat,
-                                'min_x': min_x,
-                                'max_x': max_x,
-                                'min_y': min_y,
-                                'max_y': max_y,
-                                'nw_lat': nw_lat,
-                                'nw_lon': nw_lon,
-                                'se_lat': se_lat,
-                                'se_lon': se_lon,
-                                'bounding_area_m2': area_sq,
-                                'roi_temp': temp_roi,
-                                'quartile_1': q1,
-                                'mean': mean,
-                                'median': median,
-                                'quartile_3': q3,
-                                'variance': var,
-                                'std_dev': sd}
+                #mean, median, q1, q3 = get_stats(copy)
 
-    df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
-                                                                    'lon', 'lat', 'min_x', 'max_x', 'min_y',
-                                                                    'max_y', 'nw_lat', 'nw_lon', 'se_lat',
-                                                                    'se_lon', 'bounding_area_m2', 'roi_temp',
-                                                                    'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
+                f_name = img.split('/')[-1]
+                temp_dict[cnt] = {'date': args.date,
+                                    'treatment': trt_zone,
+                                    'plot': plot,
+                                    'genotype': genotype,
+                                    'lon': lon,
+                                    'lat': lat,
+                                    'min_x': min_x,
+                                    'max_x': max_x,
+                                    'min_y': min_y,
+                                    'max_y': max_y,
+                                    'nw_lat': nw_lat,
+                                    'nw_lon': nw_lon,
+                                    'se_lat': se_lat,
+                                    'se_lon': se_lon,
+                                    'bounding_area_m2': area_sq,
+                                    'roi_temp': temp_roi,
+                                    'quartile_1': q1,
+                                    'mean': mean,
+                                    'median': median,
+                                    'quartile_3': q3,
+                                    'variance': var,
+                                    'std_dev': sd}
+
+        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
+                                                                        'lon', 'lat', 'min_x', 'max_x', 'min_y',
+                                                                        'max_y', 'nw_lat', 'nw_lon', 'se_lat',
+                                                                        'se_lon', 'bounding_area_m2', 'roi_temp',
+                                                                        'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
+
+    except:
+        pass
 
     return df
 
@@ -383,7 +388,7 @@ def main():
 
     img_list = get_paths(args.dir)
 
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+    with multiprocessing.Pool(args.cpu) as p:
         df = p.map(process_image, img_list)
         major_df = major_df.append(df)
 

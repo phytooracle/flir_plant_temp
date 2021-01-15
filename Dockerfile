@@ -6,7 +6,9 @@ COPY . /opt
 USER root
 
 RUN apt-get update
-RUN apt-get install -y wget \
+RUN apt-get install -y python3.6-dev \
+                       python3-pip \
+                       wget \
                        gdal-bin \
                        libgdal-dev \
                        libspatialindex-dev \
@@ -15,14 +17,7 @@ RUN apt-get install -y wget \
                        apt-utils \
                        ffmpeg \
                        libsm6 \
-                       libxext6 \
-                       libffi-dev \
-                       libbz2-dev
-
-RUN wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
-RUN tar -xzf Python-3.8.5.tgz
-RUN cd Python-3.8.5/ && ./configure && make && make install
-RUN apt-get install -y python3-pip
+                       libxext6
 
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update
@@ -39,4 +34,5 @@ RUN export C_INCLUDE_PATH=/usr/include/gdal
 RUN apt-get install -y locales && locale-gen en_US.UTF-8
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
-ENTRYPOINT [ "python3", "/opt/thermal_extraction.py" ]
+ENTRYPOINT [ "/usr/bin/python3", "/opt/thermal_extraction.py" ]
+

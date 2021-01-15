@@ -277,6 +277,7 @@ def get_stats(img):
 
 # --------------------------------------------------
 def kmeans_temp(img):
+
     pixel_vals = img.reshape((-1,1))
     pixel_vals = np.float32(pixel_vals)
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1.0)
@@ -302,6 +303,7 @@ def process_image(img):
     args = get_args()
 
     model = core.Model.load(args.model, ['lettuce'])
+
     plot = img.split('/')[-1].replace('_ortho.tif', '')
     trt_zone = find_trt_zone(plot)
     plot_name = plot.replace('_', ' ')
@@ -332,10 +334,10 @@ def process_image(img):
 
                 new_img = tif_img[min_y:max_y, min_x:max_x]
                 new_img = np.array(new_img)
-                #copy = new_img.copy()
+                copy = new_img.copy()
 
                 temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
-                mean, median, q1, q3, var, sd = kmeans_temp(new_img)
+                mean, median, q1, q3, var, sd = kmeans_temp(copy)
                 # img_temp = np.nanmean(new_img)
                 # peak = peak_temp(new_img)
                 # min_thresh = min_threshold(new_img)

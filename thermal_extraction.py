@@ -199,7 +199,7 @@ def roi_temp(img, max_x, min_x, max_y, min_y):
     center_y = abs(min_y - max_y)//2
     roi = img[int(center_y-10):int(center_y+10), int(center_x-10):int(center_x+10)]
 
-    temp_roi = np.nanmean(roi)
+    temp_roi = np.nanmedian(roi)
 
     return temp_roi
 

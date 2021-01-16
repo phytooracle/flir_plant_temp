@@ -120,7 +120,7 @@ def open_image(img_path):
 
 # --------------------------------------------------
 def get_min_max(box):
-    
+
     min_x, min_y, max_x, max_y = int(box[0]), int(box[1]), int(box[2]), int(box[3])
 
     return min_x, min_y, max_x, max_y
@@ -222,6 +222,8 @@ def get_stats(img):
 
 # --------------------------------------------------
 def kmeans_temp(img):
+
+    img = img[~np.isnan(img)]
 
     pixel_vals = img.reshape((-1,1))
     pixel_vals = np.float32(pixel_vals)

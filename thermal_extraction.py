@@ -311,7 +311,6 @@ def process_image(img):
     genotype = get_genotype(plot_name, args.geojson)
 
     a_img, tif_img = open_image(img)
-    df = pd.DataFrame()
 
     try:
         predictions = model.predict(a_img)
@@ -376,7 +375,7 @@ def process_image(img):
                                                                         'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
 
     except:
-        pass
+        df = pd.DataFrame()
 
     return df
 

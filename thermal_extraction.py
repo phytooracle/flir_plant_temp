@@ -192,62 +192,6 @@ def pixel2geocoord(one_img, x_pix, y_pix):
 
 
 # --------------------------------------------------
-def peak_temp(clipped_img):
-
-    sns_distplot = sns.distplot(clipped_img.ravel(), hist=True, kde=True, bins=int(clipped_img.max()/1), color='darkblue').get_lines()[0].get_data()
-    x_y = (np.stack((sns_distplot[0], sns_distplot[1]), axis=1))
-    minima = argrelextrema(sns_distplot[1], np.less_equal)
-    a_img_copy = clipped_img.copy()
-
-    minima_array = sns_distplot[0][minima]
-
-    if len(minima_array) > 1:
-        minima_val = float(minima_array[1])
-
-    cut_off = float(minima_val)
-    # print(f'Original cut off: {cut_off}')
-
-    if cut_off < 300:
-        try:
-            minima_val = float(minima_array[2])
-            cut_off = float(minima_val)
-            # print(cut_off)
-        except:
-            cut_off = cut_off
-            # print(f'New cut off: {cut_off}')
-
-    a_img_copy[a_img_copy > cut_off] = np.nan
-
-    plant_temp = np.nanmean(a_img_copy)
-
-    return plant_temp
-
-
-# --------------------------------------------------
-def min_threshold(image, sigma = float(1)):
-
-    #blur = skimage.color.rgb2gray(image)
-    blur = skimage.filters.gaussian(image, sigma=sigma)
-    t = skimage.filters.threshold_minimum(blur)
-
-    mask = blur < t
-    sel = np.zeros_like(image)
-    sel[mask] = image[mask]
-    sel[sel == 0] = np.nan
-
-    mask2 = blur > t
-    sel2 = np.zeros_like(image)
-    sel2[mask2] = image[mask2]
-    sel2[sel2 == 0] = np.nan
-
-    soil_temp = np.nanmean(sel2)
-    plant_temp = np.nanmean(sel)
-    img_temp = np.nanmean(image)
-
-    return plant_temp
-
-
-# --------------------------------------------------
 def roi_temp(img, max_x, min_x, max_y, min_y):
 
     center_x = abs(min_x - max_x)//2
@@ -301,6 +245,7 @@ def process_image(img):
     temp_dict = {}
     cnt = 0
     args = get_args()
+    df = pd.DataFrame()
 
     model = core.Model.load(args.model, ['lettuce'])
 
@@ -312,70 +257,60 @@ def process_image(img):
 
     a_img, tif_img = open_image(img)
 
-    try:
-        predictions = model.predict(a_img)
-        labels, boxes, scores = predictions
+    predictions = model.predict(a_img)
+    labels, boxes, scores = predictions
 
-        for i, box in enumerate(boxes):
-            if scores[i] >= 0.2:
-                cnt += 1
-                min_x, min_y, max_x, max_y = get_min_max(box)
-                center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
+    for i, box in enumerate(boxes):
+        if scores[i] >= 0.2:
+            cnt += 1
+            min_x, min_y, max_x, max_y = get_min_max(box)
+            center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
 
-                nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
-                se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
+            nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
+            se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
 
-                nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
-                se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
+            nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
+            se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
 
-                area_sq = (se_e - nw_e) * (se_n - nw_n)
-                lat, lon = pixel2geocoord(img, center_x, center_y)
+            area_sq = (se_e - nw_e) * (se_n - nw_n)
+            lat, lon = pixel2geocoord(img, center_x, center_y)
 
-                new_img = tif_img[min_y:max_y, min_x:max_x]
-                new_img = np.array(new_img)
-                copy = new_img.copy()
+            new_img = tif_img[min_y:max_y, min_x:max_x]
+            new_img = np.array(new_img)
+            copy = new_img.copy()
 
-                temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
-                mean, median, q1, q3, var, sd = kmeans_temp(copy)
-                # img_temp = np.nanmean(new_img)
-                # peak = peak_temp(new_img)
-                # min_thresh = min_threshold(new_img)
-                # print(temp_roi)
+            temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
+            mean, median, q1, q3, var, sd = kmeans_temp(copy)
 
-                #mean, median, q1, q3 = get_stats(copy)
+            f_name = img.split('/')[-1]
+            temp_dict[cnt] = {'date': args.date,
+                                'treatment': trt_zone,
+                                'plot': plot,
+                                'genotype': genotype,
+                                'lon': lon,
+                                'lat': lat,
+                                'min_x': min_x,
+                                'max_x': max_x,
+                                'min_y': min_y,
+                                'max_y': max_y,
+                                'nw_lat': nw_lat,
+                                'nw_lon': nw_lon,
+                                'se_lat': se_lat,
+                                'se_lon': se_lon,
+                                'bounding_area_m2': area_sq,
+                                'roi_temp': temp_roi,
+                                'quartile_1': q1,
+                                'mean': mean,
+                                'median': median,
+                                'quartile_3': q3,
+                                'variance': var,
+                                'std_dev': sd}
 
-                f_name = img.split('/')[-1]
-                temp_dict[cnt] = {'date': args.date,
-                                    'treatment': trt_zone,
-                                    'plot': plot,
-                                    'genotype': genotype,
-                                    'lon': lon,
-                                    'lat': lat,
-                                    'min_x': min_x,
-                                    'max_x': max_x,
-                                    'min_y': min_y,
-                                    'max_y': max_y,
-                                    'nw_lat': nw_lat,
-                                    'nw_lon': nw_lon,
-                                    'se_lat': se_lat,
-                                    'se_lon': se_lon,
-                                    'bounding_area_m2': area_sq,
-                                    'roi_temp': temp_roi,
-                                    'quartile_1': q1,
-                                    'mean': mean,
-                                    'median': median,
-                                    'quartile_3': q3,
-                                    'variance': var,
-                                    'std_dev': sd}
-
-        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
-                                                                        'lon', 'lat', 'min_x', 'max_x', 'min_y',
-                                                                        'max_y', 'nw_lat', 'nw_lon', 'se_lat',
-                                                                        'se_lon', 'bounding_area_m2', 'roi_temp',
-                                                                        'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
-
-    except:
-        df = pd.DataFrame()
+    df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
+                                                                    'lon', 'lat', 'min_x', 'max_x', 'min_y',
+                                                                    'max_y', 'nw_lat', 'nw_lon', 'se_lat',
+                                                                    'se_lon', 'bounding_area_m2', 'roi_temp',
+                                                                    'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
 
     return df
 
@@ -385,16 +320,16 @@ def main():
     """Detect plants and collect temperatures here"""
 
     args = get_args()
-    major_df = pd.DataFrame()
+
+    if not os.path.isdir(args.outdir):
+        os.makedirs(args.outdir)
 
     img_list = get_paths(args.dir)
+    major_df = pd.DataFrame()
 
     with multiprocessing.Pool(args.cpu) as p:
         df = p.map(process_image, img_list)
         major_df = major_df.append(df)
-
-    if not os.path.isdir(args.outdir):
-        os.makedirs(args.outdir)
 
     major_df.to_csv(os.path.join(args.outdir, f'{args.outfile}.csv'))
 

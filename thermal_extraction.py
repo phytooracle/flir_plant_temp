@@ -125,61 +125,61 @@ def get_min_max(box):
 
     return min_x, min_y, max_x, max_y
 
-
+## 130 to 185 are commented out for S11
 # --------------------------------------------------
-def get_trt_zones():
-    trt_zone_1 = []
-    trt_zone_2 = []
-    trt_zone_3 = []
+#def get_trt_zones():
+#    trt_zone_1 = []
+#    trt_zone_2 = []
+#    trt_zone_3 = []
 
-    for i in range(3, 19):
-        for i2 in range(2, 48):
-            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-            trt_zone_1.append(str(plot))
+#    for i in range(3, 19):
+#        for i2 in range(2, 48):
+#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+#            trt_zone_1.append(str(plot))
 
-    for i in range(20, 36):
-        for i2 in range(2, 48):
-            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-            trt_zone_2.append(str(plot))
+#    for i in range(20, 36):
+#        for i2 in range(2, 48):
+#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+#            trt_zone_2.append(str(plot))
 
-    for i in range(37, 53):
-        for i2 in range(2, 48):
-            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-            trt_zone_3.append(str(plot))
+#    for i in range(37, 53):
+#        for i2 in range(2, 48):
+#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
+#            trt_zone_3.append(str(plot))
 
-    return trt_zone_1, trt_zone_2, trt_zone_3
-
-
-# --------------------------------------------------
-def find_trt_zone(plot_name):
-    trt_zone_1, trt_zone_2, trt_zone_3 = get_trt_zones()
-
-    if plot_name in trt_zone_1:
-        trt = 'treatment 1'
-
-    elif plot_name in trt_zone_2:
-        trt = 'treatment 2'
-
-    elif plot_name in trt_zone_3:
-        trt = 'treatment 3'
-
-    else:
-        trt = 'border'
-
-    return trt
+#    return trt_zone_1, trt_zone_2, trt_zone_3
 
 
 # --------------------------------------------------
-def get_genotype(plot, geojson):
+#def find_trt_zone(plot_name):
+#    trt_zone_1, trt_zone_2, trt_zone_3 = get_trt_zones()
 
-    with open(geojson) as f:
-        data = json.load(f)
+#    if plot_name in trt_zone_1:
+#        trt = 'treatment 1'
 
-    for feat in data['features']:
-        if feat.get('properties')['ID']==plot:
-            genotype = feat.get('properties').get('genotype')
+#    elif plot_name in trt_zone_2:
+#        trt = 'treatment 2'
 
-    return genotype
+#    elif plot_name in trt_zone_3:
+#        trt = 'treatment 3'
+
+#    else:
+#        trt = 'border'
+
+#    return trt
+
+
+# --------------------------------------------------
+#def get_genotype(plot, geojson):
+
+#    with open(geojson) as f:
+#        data = json.load(f)
+
+#    for feat in data['features']:
+#        if feat.get('properties')['ID']==plot:
+#            genotype = feat.get('properties').get('genotype')
+
+#    return genotype
 
 
 # --------------------------------------------------
@@ -254,10 +254,10 @@ def process_image(img):
     model = core.Model.load(args.model, ['lettuce'])
 
     plot = img.split('/')[-1].replace('_ortho.tif', '')
-    trt_zone = find_trt_zone(plot)
+    #trt_zone = find_trt_zone(plot)
     plot_name = plot.replace('_', ' ')
     print(f'Image: {plot_name}')
-    genotype = get_genotype(plot_name, args.geojson)
+    #genotype = get_genotype(plot_name, args.geojson)
 
     a_img, tif_img = open_image(img)
     df = pd.DataFrame()
@@ -292,9 +292,9 @@ def process_image(img):
 
                 f_name = img.split('/')[-1]
                 temp_dict[cnt] = {'date': args.date,
-                                    'treatment': trt_zone,
+                                    #'treatment': trt_zone,
                                     'plot': plot,
-                                    'genotype': genotype,
+                                    #'genotype': genotype,
                                     'lon': lon,
                                     'lat': lat,
                                     'min_x': min_x,
@@ -314,11 +314,18 @@ def process_image(img):
                                     'variance': var,
                                     'std_dev': sd}
 
-        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
+        #df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
+        #                                                                'lon', 'lat', 'min_x', 'max_x', 'min_y',
+        #                                                                'max_y', 'nw_lat', 'nw_lon', 'se_lat',
+        #                                                                'se_lon', 'bounding_area_m2', 'roi_temp',
+        #                                                                'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
+        
+        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'plot',
                                                                         'lon', 'lat', 'min_x', 'max_x', 'min_y',
                                                                         'max_y', 'nw_lat', 'nw_lon', 'se_lat',
                                                                         'se_lon', 'bounding_area_m2', 'roi_temp',
                                                                         'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
+
     except:
         pass
 

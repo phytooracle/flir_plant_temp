@@ -255,7 +255,7 @@ def process_image(img):
 #S11 changes
     dirpath = os.path.dirname(os.path.abspath("*.tif"))
     path, plot = os.path.split(dirpath)
-    print(f'Image: {plot}')
+    print(f'Image: {path}')
 #    plot = img.split('/')[-1].replace('_ortho.tif', '')
     #trt_zone = find_trt_zone(plot)
 #    plot_name = plot.replace('_', ' ')

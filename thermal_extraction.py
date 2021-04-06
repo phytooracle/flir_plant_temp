@@ -253,9 +253,11 @@ def process_image(img):
 
     model = core.Model.load(args.model, ['lettuce'])
 #S11 changes
-    dirpath = os.path.dirname(os.path.abspath("*.tif"))
-    path, plot = os.path.split(dirpath)
-    print(f'Image: {path}')
+    dirpath = glob.glob(f'{args.dir}*/*.tif')
+    path2split = ''.join(dirpath)
+    plot = path2split.split("/")[-2]
+    print(f'dirpath: {dirpath}')
+    print(f'Image: {plot}')
 #    plot = img.split('/')[-1].replace('_ortho.tif', '')
     #trt_zone = find_trt_zone(plot)
 #    plot_name = plot.replace('_', ' ')

@@ -252,16 +252,10 @@ def process_image(img):
     temp_dict = {}
 
     model = core.Model.load(args.model, ['lettuce'])
-#S11 changes
-    dirpath = glob.glob(f'{args.dir}*/*.tif')
-    path2split = ''.join(dirpath)
-    plot = path2split.split("/")[-2]
-    print(f'dirpath: {dirpath}')
-    print(f'Image: {plot}')
-#    plot = img.split('/')[-1].replace('_ortho.tif', '')
+    plot = img.split('/')[-1].replace('_ortho.tif', '')
     #trt_zone = find_trt_zone(plot)
-#    plot_name = plot.replace('_', ' ')
-#    print(f'Image: {plot_name}')
+    # plot_name = plot.replace('_', ' ')
+    print(f'Image: {plot}')
     #genotype = get_genotype(plot_name, args.geojson)
 
     a_img, tif_img = open_image(img)

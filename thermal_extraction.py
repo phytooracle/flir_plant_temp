@@ -78,7 +78,7 @@ def get_args():
                         help='Number of CPUs for multiprocessing',
                         metavar='cpu',
                         type=int,
-                        required=True)
+                        required=False)
 
     parser.add_argument('-of',
                         '--outfile',
@@ -343,7 +343,7 @@ def main():
     img_list = get_paths(args.dir)
     major_df = pd.DataFrame()
 
-    with multiprocessing.Pool(args.cpu) as p:
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
         df = p.map(process_image, img_list)
         major_df = major_df.append(df)
 

@@ -125,49 +125,6 @@ def get_min_max(box):
 
     return min_x, min_y, max_x, max_y
 
-## 130 to 185 are commented out for S11
-# --------------------------------------------------
-#def get_trt_zones():
-#    trt_zone_1 = []
-#    trt_zone_2 = []
-#    trt_zone_3 = []
-
-#    for i in range(3, 19):
-#        for i2 in range(2, 48):
-#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-#            trt_zone_1.append(str(plot))
-
-#    for i in range(20, 36):
-#        for i2 in range(2, 48):
-#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-#            trt_zone_2.append(str(plot))
-
-#    for i in range(37, 53):
-#        for i2 in range(2, 48):
-#            plot = f'MAC_Field_Scanner_Season_10_Range_{i}_Column_{i2}'
-#            trt_zone_3.append(str(plot))
-
-#    return trt_zone_1, trt_zone_2, trt_zone_3
-
-
-# --------------------------------------------------
-#def find_trt_zone(plot_name):
-#    trt_zone_1, trt_zone_2, trt_zone_3 = get_trt_zones()
-
-#    if plot_name in trt_zone_1:
-#        trt = 'treatment 1'
-
-#    elif plot_name in trt_zone_2:
-#        trt = 'treatment 2'
-
-#    elif plot_name in trt_zone_3:
-#        trt = 'treatment 3'
-
-#    else:
-#        trt = 'border'
-
-#    return trt
-
 
 # --------------------------------------------------
 #def get_genotype(plot, geojson):
@@ -268,50 +225,50 @@ def process_image(img):
         #copy = a_img.copy()
 
         for i, box in enumerate(boxes):
-            if scores[i] >= 0.2:
-                cnt += 1
+            # if scores[i] >= 0.2:
+            cnt += 1
 
-                min_x, min_y, max_x, max_y = get_min_max(box)
-                center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
-                nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
-                se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
+            min_x, min_y, max_x, max_y = get_min_max(box)
+            center_x, center_y = ((max_x+min_x)/2, (max_y+min_y)/2)
+            nw_lat, nw_lon = pixel2geocoord(img, min_x, max_y)
+            se_lat, se_lon = pixel2geocoord(img, max_x, min_y)
 
-                nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
-                se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
+            nw_e, nw_n, _, _ = utm.from_latlon(nw_lat, nw_lon, 12, 'N')
+            se_e, se_n, _, _ = utm.from_latlon(se_lat, se_lon, 12, 'N')
 
-                area_sq = (se_e - nw_e) * (se_n - nw_n)
-                lat, lon = pixel2geocoord(img, center_x, center_y)
+            area_sq = (se_e - nw_e) * (se_n - nw_n)
+            lat, lon = pixel2geocoord(img, center_x, center_y)
 
-                new_img = tif_img[min_y:max_y, min_x:max_x]
-                new_img = np.array(new_img)
-                copy = new_img.copy()
+            new_img = tif_img[min_y:max_y, min_x:max_x]
+            new_img = np.array(new_img)
+            copy = new_img.copy()
 
-                temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
-                mean, median, q1, q3, var, sd = kmeans_temp(copy)
+            temp_roi = roi_temp(new_img, max_x, min_x, max_y, min_y)
+            mean, median, q1, q3, var, sd = kmeans_temp(copy)
 
-                f_name = img.split('/')[-1]
-                temp_dict[cnt] = {'date': args.date,
-                                    #'treatment': trt_zone,
-                                    'plot': plot,
-                                    #'genotype': genotype,
-                                    'lon': lon,
-                                    'lat': lat,
-                                    'min_x': min_x,
-                                    'max_x': max_x,
-                                    'min_y': min_y,
-                                    'max_y': max_y,
-                                    'nw_lat': nw_lat,
-                                    'nw_lon': nw_lon,
-                                    'se_lat': se_lat,
-                                    'se_lon': se_lon,
-                                    'bounding_area_m2': area_sq,
-                                    'roi_temp': temp_roi,
-                                    'quartile_1': q1,
-                                    'mean': mean,
-                                    'median': median,
-                                    'quartile_3': q3,
-                                    'variance': var,
-                                    'std_dev': sd}
+            f_name = img.split('/')[-1]
+            temp_dict[cnt] = {'date': args.date,
+                                'pred_conf': scores[i].detach().numpy(),
+                                'plot': plot,
+                                #'genotype': genotype,
+                                'lon': lon,
+                                'lat': lat,
+                                'min_x': min_x,
+                                'max_x': max_x,
+                                'min_y': min_y,
+                                'max_y': max_y,
+                                'nw_lat': nw_lat,
+                                'nw_lon': nw_lon,
+                                'se_lat': se_lat,
+                                'se_lon': se_lon,
+                                'bounding_area_m2': area_sq,
+                                'roi_temp': temp_roi,
+                                'quartile_1': q1,
+                                'mean': mean,
+                                'median': median,
+                                'quartile_3': q3,
+                                'variance': var,
+                                'std_dev': sd}
 
         #df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'treatment', 'plot', 'genotype',
         #                                                                'lon', 'lat', 'min_x', 'max_x', 'min_y',

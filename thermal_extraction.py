@@ -276,7 +276,7 @@ def process_image(img):
         #                                                                'se_lon', 'bounding_area_m2', 'roi_temp',
         #                                                                'quartile_1', 'mean', 'median', 'quartile_3', 'variance', 'std_dev']).set_index('date')
         
-        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'plot',
+        df = pd.DataFrame.from_dict(temp_dict, orient='index', columns=['date', 'pred_conf', 'plot',
                                                                         'lon', 'lat', 'min_x', 'max_x', 'min_y',
                                                                         'max_y', 'nw_lat', 'nw_lon', 'se_lat',
                                                                         'se_lon', 'bounding_area_m2', 'roi_temp',

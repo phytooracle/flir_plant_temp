@@ -1,5 +1,4 @@
 GDAL==3.0.4
-numpy==1.19.1
 pyproj==2.6.0
 utm==0.5.0
 tifffile==2020.2.16
@@ -12,3 +11,4 @@ seaborn==0.10.1
 scipy==1.4.1
 seaborn==0.10.1
 scikit-image==0.17.2
+numpy==1.19.1

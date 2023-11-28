@@ -23,7 +23,20 @@ RUN apt-get install -y python3.6-dev \
                        liblz4-dev \
                        libzstd-dev \
                        libsnappy-dev \
-                       libbrotli-dev
+                       libbrotli-dev \
+                        libjpeg-dev \
+                        libopenjp2-7-dev \
+                        libtiff5-dev \
+                        zlib1g-dev \
+                        libfreetype6-dev \
+                        liblcms2-dev \
+                        libwebp-dev \
+                        tcl8.6-dev \
+                        tk8.6-dev \
+                        python-tk \
+                        libharfbuzz-dev \
+                        libfribidi-dev \
+                        libxcb1-dev
 
 # RUN export export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so.4"
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable

@@ -20,7 +20,7 @@ RUN apt-get install -y python3.6-dev \
                        libxext6 \
                        libtcmalloc-minimal4
 
-RUN export export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so.4"
+# RUN export export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so.4"
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update
 RUN apt-get install -y libgdal-dev

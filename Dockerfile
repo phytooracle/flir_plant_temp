@@ -61,8 +61,8 @@ RUN cd /opt/Python-${PYTHON_VERSION} \
     && rm /opt/Python-${PYTHON_VERSION}.tgz /opt/Python-${PYTHON_VERSION} -rf
 
 RUN apt-get update
-RUN pip3 install --upgrade pip
-RUN pip3 install --upgrade wheel
+RUN pip3 install pip==21.3.1
+RUN pip3 install wheel==0.30.0
 RUN pip3 install cython
 RUN pip3 install --upgrade cython
 RUN pip3 install setuptools==39.0.1

@@ -5,7 +5,7 @@ tifffile==2020.2.16
 matplotlib==3.2.1
 opencv-python==3.4.9.31
 detecto==1.1.6
-imagecodecs==2020.2.18
+imagecodecs==2020.5.30
 pandas==1.0.3
 seaborn==0.10.1
 scipy==1.4.1

@@ -65,7 +65,7 @@ RUN pip3 install --upgrade pip
 RUN pip3 install --upgrade wheel
 RUN pip3 install cython
 RUN pip3 install --upgrade cython
-RUN pip3 install setuptools==57.5.0
+RUN pip3 install setuptools==39.0.1
 RUN pip3 install GDAL==3.0.4
 RUN pip3 install -r /opt/requirements.txt
 RUN apt-get install -y locales && locale-gen en_US.UTF-8

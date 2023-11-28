@@ -25,19 +25,19 @@ RUN apt-get install -y wget \
                        libzstd-dev \
                        libsnappy-dev \
                        libbrotli-dev \
-                        libjpeg-dev \
-                        libopenjp2-7-dev \
-                        libtiff5-dev \
-                        zlib1g-dev \
-                        libfreetype6-dev \
-                        liblcms2-dev \
-                        libwebp-dev \
-                        tcl8.6-dev \
-                        tk8.6-dev \
-                        python-tk \
-                        libharfbuzz-dev \
-                        libfribidi-dev \
-                        libxcb1-dev
+                       libjpeg-dev \
+                       libopenjp2-7-dev \
+                       libtiff5-dev \
+                       zlib1g-dev \
+                       libfreetype6-dev \
+                       liblcms2-dev \
+                       libwebp-dev \
+                       tcl8.6-dev \
+                       tk8.6-dev \
+                       python-tk \
+                       libharfbuzz-dev \
+                       libfribidi-dev \
+                       libxcb1-dev
 
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
 RUN apt-get update

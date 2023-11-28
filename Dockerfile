@@ -18,7 +18,12 @@ RUN apt-get install -y python3.6-dev \
                        ffmpeg \
                        libsm6 \
                        libxext6 \
-                       libtcmalloc-minimal4
+                       libtcmalloc-minimal4 \
+                       libblosc-dev \
+                       liblz4-dev \
+                       libzstd-dev \
+                       libsnappy-dev \
+                       libbrotli-dev
 
 # RUN export export LD_PRELOAD="/usr/lib/libtcmalloc_minimal.so.4"
 RUN add-apt-repository ppa:ubuntugis/ubuntugis-unstable
